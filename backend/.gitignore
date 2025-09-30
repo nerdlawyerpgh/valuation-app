@@ -1,0 +1,15 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# FastAPI/uvicorn cache
+*.sqlite3
+
+# Secrets
+.env
+GOOGLE_SERVICE_ACCOUNT_FILE.json
+
+# OS/IDE
+.DS_Store
+.vscode/
