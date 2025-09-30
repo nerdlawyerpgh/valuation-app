@@ -1,13 +1,11 @@
-// app/api/auth/me/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { stytchClient } from '@/lib/stytch'; // instance export (your Option B)
+import { stytchClient } from '@/lib/stytch';
 
 type EmailItem = { email?: string; primary?: boolean };
+type PhoneItem = { phone_number?: string; primary?: boolean };
 
-// Narrow the shape we need from whatever the SDK returns
 function pickPrimaryEmail(res: unknown): string | null {
-  // Some SDK versions return { user: { emails: [...] } }
   if (res && typeof res === 'object' && 'user' in res) {
     const user: any = (res as any).user;
     const emails: EmailItem[] | undefined = user?.emails;
@@ -18,23 +16,33 @@ function pickPrimaryEmail(res: unknown): string | null {
   return null;
 }
 
+function pickPrimaryPhone(res: unknown): string | null {
+  if (res && typeof res === 'object' && 'user' in res) {
+    const user: any = (res as any).user;
+    const phones: PhoneItem[] | undefined = user?.phone_numbers;
+    if (Array.isArray(phones) && phones.length) {
+      return phones.find(p => p?.primary)?.phone_number ?? phones[0]?.phone_number ?? null;
+    }
+  }
+  return null;
+}
+
 export async function GET() {
   try {
     const sessionToken = cookies().get('stytch_session')?.value;
-    if (!sessionToken) return NextResponse.json({ email: null });
+    if (!sessionToken) return NextResponse.json({ email: null, phone: null });
 
-    // 1) Authenticate the session and get the user_id
     const { session } = await stytchClient.sessions.authenticate({
       session_token: sessionToken,
     });
 
-    // 2) Fetch the user; avoid strict typing issues with a tiny helper
     const userRes = await stytchClient.users.get({ user_id: session.user_id });
 
     const primaryEmail = pickPrimaryEmail(userRes);
+    const primaryPhone = pickPrimaryPhone(userRes);
 
-    return NextResponse.json({ email: primaryEmail });
+    return NextResponse.json({ email: primaryEmail, phone: primaryPhone });
   } catch {
-    return NextResponse.json({ email: null });
+    return NextResponse.json({ email: null, phone: null });
   }
 }

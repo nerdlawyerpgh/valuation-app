@@ -3,11 +3,16 @@ import React, { useEffect, useState } from 'react';
 
 export default function IntakePage() {
   const [userEmail, setUserEmail] = useState<string|null>(null);
+  const [userPhone, setUserPhone] = useState<string|null>(null);  // ADD THIS
 
   useEffect(() => {
-    fetch('/api/auth/me')               // implement this to return { email }
+    fetch('/api/auth/me')
       .then(r => r.ok ? r.json() : null)
-      .then(d => setUserEmail(d?.email ?? null))
+      .then(d => {
+        console.log('User data from /api/auth/me:', d);
+        setUserEmail(d?.email ?? null);
+        setUserPhone(d?.phone ?? null);  // ADD THIS
+      })
       .catch(() => {});
   }, []);
 
@@ -83,6 +88,7 @@ export default function IntakePage() {
     const payloadForLog = {
       // include email if you have it in context; otherwise leave null
       email: (typeof userEmail === 'string' && /\S+@\S+\.\S+/.test(userEmail)) ? userEmail : null,
+      phone: userPhone, 
 
       ebitda: num(ebitda),
       debt_pct: num(debtPct / 100),
@@ -102,6 +108,8 @@ export default function IntakePage() {
       band_label: (data.notes?.match(/band=([^;]+)/)?.[1]) ?? null,
       notes: data.notes ?? null,
     };
+
+    console.log('Sending to /log/valuation:', payloadForLog); 
 
     fetch(`${api}/log/valuation`, {
       method: 'POST',

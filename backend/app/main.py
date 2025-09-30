@@ -10,6 +10,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+
 # Your valuation logic
 from .valuations import compute_valuation, ValuationInput  # ValuationOutput not required to import
 
@@ -35,6 +38,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# -----------------------------------------------------------------------------
+# SendGrid helpers 
+# -----------------------------------------------------------------------------
+def send_notification_email(subject: str, body: str):
+    """Send notification email when new data is logged"""
+    api_key = os.getenv("SENDGRID_API_KEY")
+    to_email = os.getenv("NOTIFICATION_EMAIL")
+    
+    if not api_key or not to_email:
+        return  # Skip if not configured
+    
+    try:
+        message = Mail(
+            from_email='curt@nerdlawyer.ai',
+            to_emails=to_email,
+            subject=subject,
+            html_content=body
+        )
+        sg = SendGridAPIClient(api_key)
+        sg.send(message)
+    except Exception as e:
+        print(f"[Email] Failed to send: {e}")
 
 # -----------------------------------------------------------------------------
 # Google Sheets helpers (no-op if not configured)
@@ -64,6 +89,7 @@ def _gs_init_once() -> None:
 
         if not (key_json or key_path):
             # Not configured; stay as no-op
+            print("[Google Sheets] No credentials configured - logging disabled")
             _GS_READY = True
             return
 
@@ -79,9 +105,11 @@ def _gs_init_once() -> None:
         else:
             _gs_sheet = _gs_client.open(spreadsheet_name)
 
+        print(f"[Google Sheets] Successfully connected to spreadsheet")
         _GS_READY = True
-    except Exception:
-        # If anything fails, we mark ready to avoid retry storms; logging is just disabled.
+    except Exception as e:
+        # Log the actual error so you can debug
+        print(f"[Google Sheets] Failed to initialize: {e}")
         _GS_READY = True
         _gs_client = None
         _gs_sheet = None
@@ -97,9 +125,10 @@ def _gs_append_row(worksheet_name: str, row: List[Any]) -> None:
         except Exception:
             ws = _gs_sheet.add_worksheet(title=worksheet_name, rows=1000, cols=26)
         ws.append_row(row, value_input_option="USER_ENTERED")
-    except Exception:
-        # swallow logging errors (don’t block primary workflow)
-        pass
+        print(f"[Google Sheets] Logged to {worksheet_name}")
+    except Exception as e:
+        # Log errors so you can debug
+        print(f"[Google Sheets] Failed to append to {worksheet_name}: {e}")
 
 # -----------------------------------------------------------------------------
 # Utilities to capture metadata
@@ -133,6 +162,7 @@ class ValuationRunIn(BaseModel):
     debt_pct: Optional[float] = None
     industry: Optional[str] = None
     email: Optional[EmailStr] = None  # if you have it in the client
+    phone: Optional[str] = None 
 
     # Outputs to be logged (client should pass back what it received)
     enterprise_value: Optional[float] = None
@@ -159,39 +189,6 @@ async def debug_env():
         "GOOGLE_SERVICE_ACCOUNT_JSON": bool(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")),
     }
 
-@app.post("/log/access")
-async def log_access(req: Request, payload: AccessRequestIn):
-    """
-    Log an access request or MFA completion.
-    Call this twice if you want: once when they request the link (email only),
-    and again after MFA to record the phone.
-    """
-    ip = _client_ip(req)
-    ua = _user_agent(req)
-    row = [
-        _utcnow_iso(),
-        payload.email,
-        payload.phone or "",
-        ip,
-        ua,
-        payload.approx_city or "",
-        payload.approx_region or "",
-        payload.approx_country or "",
-        payload.lat if payload.lat is not None else "",
-        payload.lon if payload.lon is not None else "",
-        payload.referrer or "",
-    ]
-    _gs_append_row("AccessRequests", row)
-    return {"ok": True}
-
-@app.post("/compute-valuation")
-async def compute(payload: ValuationInput):
-    """
-    Your existing valuation endpoint.
-    """
-    result = compute_valuation(payload)
-    return result
-
 @app.post("/log/valuation")
 async def log_valuation(payload: ValuationRunIn):
     """
@@ -201,6 +198,7 @@ async def log_valuation(payload: ValuationRunIn):
     row = [
         _utcnow_iso(),
         payload.email or "",
+        payload.phone or "",
         payload.ebitda,
         payload.debt_pct if payload.debt_pct is not None else "",
         payload.industry or "",
@@ -217,4 +215,46 @@ async def log_valuation(payload: ValuationRunIn):
         payload.notes or "",
     ]
     _gs_append_row("ValuationRuns", row)
+    
+    # Send email with valuation data
+    # Format values safely before using them in the email
+    ev_formatted = f"${payload.enterprise_value:,.0f}" if payload.enterprise_value else "N/A"
+    expected_formatted = f"${payload.expected_valuation:,.0f}" if payload.expected_valuation else "N/A"
+    expected_low_formatted = f"${payload.expected_low:,.0f}" if payload.expected_low else "N/A"
+    expected_high_formatted = f"${payload.expected_high:,.0f}" if payload.expected_high else "N/A"
+    ebitda_formatted = f"${payload.ebitda:,.0f}"
+    debt_pct_formatted = f"{payload.debt_pct * 100:.0f}%" if payload.debt_pct else "N/A"
+
+    send_notification_email(
+        subject=f"New Valuation: {payload.email or 'Unknown User'}",
+        body=f"""
+        <h3>New Valuation Completed</h3>
+        <p><strong>Email:</strong> {payload.email or 'Not provided'}</p>
+        <p><strong>Phone:</strong> {payload.phone or 'Not provided'}</p>
+        <p><strong>Time:</strong> {_utcnow_iso()}</p>
+        
+        <h4>Inputs:</h4>
+        <ul>
+            <li><strong>EBITDA:</strong> {ebitda_formatted}</li>
+            <li><strong>Debt %:</strong> {debt_pct_formatted}</li>
+            <li><strong>Industry:</strong> {payload.industry or 'Not specified'}</li>
+        </ul>
+        
+        <h4>Results:</h4>
+        <ul>
+            <li><strong>Enterprise Value:</strong> {ev_formatted}</li>
+            <li><strong>Expected Valuation:</strong> {expected_formatted}</li>
+            <li><strong>Expected Range:</strong> {expected_low_formatted} - {expected_high_formatted}</li>
+        </ul>
+        """
+    )
+    
     return {"ok": True}
+
+@app.post("/compute-valuation")
+async def compute(payload: ValuationInput):
+    """
+    Your existing valuation endpoint.
+    """
+    result = compute_valuation(payload)
+    return result

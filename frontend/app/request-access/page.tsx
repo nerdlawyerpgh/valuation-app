@@ -28,27 +28,7 @@ export default function RequestAccessPage() {
       setError(err.message || 'Something went wrong');
       setStatus(null);
     }
-      const api = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
-
-      // 1) log the access attempt
-      await fetch('${api}/log/access', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          referrer: document.referrer || '',
-          // lat/lon only if you asked for user consent
-        }),
-      });
-
-      // 2) send magic link...
-      await fetch('/api/auth/send-link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-    }
-    
+  } 
     return (
     <div className="card">
       {!sent ? (
