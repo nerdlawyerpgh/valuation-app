@@ -166,6 +166,7 @@ class ValuationRunIn(BaseModel):
     industry: Optional[str] = None
     email: Optional[EmailStr] = None  # if you have it in the client
     phone: Optional[str] = None 
+    location: Optional[str] = None 
 
     # Outputs to be logged (client should pass back what it received)
     enterprise_value: Optional[float] = None
@@ -200,6 +201,7 @@ async def log_access(req: Request, payload: AccessRequestIn):
         _utcnow_iso(),
         payload.email,
         payload.phone or "",
+        payload.location or "",
         ip,
         ua,
         payload.approx_city or "",
@@ -211,7 +213,7 @@ async def log_access(req: Request, payload: AccessRequestIn):
     ]
     
     headers = [
-        "Timestamp", "Email", "Phone", "IP Address", "User Agent",
+        "Timestamp", "Email", "Phone", "Location", "IP Address", "User Agent",
         "City", "Region", "Country", "Latitude", "Longitude", "Referrer"
     ]
     
@@ -226,6 +228,7 @@ async def log_valuation(payload: ValuationRunIn):
         _utcnow_iso(),
         payload.email or "",
         payload.phone or "",
+        payload.location or "",
         payload.ebitda,
         payload.debt_pct if payload.debt_pct is not None else "",
         payload.industry or "",
@@ -242,7 +245,7 @@ async def log_valuation(payload: ValuationRunIn):
     ]
     
     headers = [
-        "Timestamp", "Email", "Phone", "EBITDA", "Debt %", "Industry",
+        "Timestamp", "Email", "Phone", "Location" "EBITDA", "Debt %", "Industry",
         "EV TEV Current", "EV TEV Avg", "EV Ind Current", "EV Ind Avg",
         "EV PE Stack", "Expected Valuation", "Expected Low", "Expected High",
         "Band Label", "Notes"

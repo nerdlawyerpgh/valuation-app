@@ -19,6 +19,7 @@ export default function IntakePage() {
   const [ebitda, setEbitda] = useState('2500000');
   const [debtPct, setDebtPct] = useState<number>(60);
   const [industry, setIndustry] = useState('All-Industry');
+  const [location, setLocation] = useState('');
 
   const [ev, setEv] = useState<number | null>(null);
   const [expected, setExpected] = useState<number | null>(null);
@@ -43,6 +44,17 @@ export default function IntakePage() {
     'Business Services', 'Consumer Products', 'Distribution & Logistics',
     'Healthcare Services', 'Manufacturing', 'Media & Telecom', 'Retail', 'Technology / IT Services',
   ] as const;
+
+  const US_STATES = [
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
+  'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa',
+  'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan',
+  'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire',
+  'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio',
+  'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota',
+  'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
+  'Wisconsin', 'Wyoming'
+] as const;
 
   // Use backend-provided min/max if present; otherwise derive a ±20% band
   const expectedMin = expectedLow ?? (expected !== null ? Math.round(expected * 0.8) : null);
@@ -89,6 +101,7 @@ export default function IntakePage() {
       // include email if you have it in context; otherwise leave null
       email: (typeof userEmail === 'string' && /\S+@\S+\.\S+/.test(userEmail)) ? userEmail : null,
       phone: userPhone, 
+      location: location || null, 
 
       ebitda: num(ebitda),
       debt_pct: num(debtPct / 100),
@@ -222,6 +235,24 @@ export default function IntakePage() {
               ))}
             </select>
             <p className="mt-2 text-xs text-gray-500">Pick the closest category.</p>
+          </div>
+          {/* Location */}
+          <div>
+            <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+              Company Location
+            </label>
+            <select
+              id="location"
+              className="w-full text-gray-500 border rounded-lg p-2"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            >
+              <option value="">Select state...</option>
+              {US_STATES.map((state) => (
+                <option key={state} value={state}>{state}</option>
+              ))}
+            </select>
+            <p className="mt-2 text-xs text-gray-500">Where is your company based?</p>
           </div>
 
           {/* Compute */}
