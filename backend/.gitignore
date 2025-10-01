@@ -9,6 +9,7 @@ __pycache__/
 # Secrets
 .env
 GOOGLE_SERVICE_ACCOUNT_FILE.json
+jovocp-valuation-app-e35c81c24ae6.json
 
 # OS/IDE
 .DS_Store
