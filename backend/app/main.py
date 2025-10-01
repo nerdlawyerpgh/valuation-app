@@ -254,6 +254,41 @@ async def log_valuation(payload: ValuationRunIn):
     _gs_append_row("ValuationRuns", row, headers)
     
     # Send email notification...
+    # Format values safely before using them in the email
+    ev_formatted = f"${payload.enterprise_value:,.0f}" if payload.enterprise_value else "N/A"
+    expected_formatted = f"${payload.expected_valuation:,.0f}" if payload.expected_valuation else "N/A"
+    expected_low_formatted = f"${payload.expected_low:,.0f}" if payload.expected_low else "N/A"
+    expected_high_formatted = f"${payload.expected_high:,.0f}" if payload.expected_high else "N/A"
+    ebitda_formatted = f"${payload.ebitda:,.0f}"
+    debt_pct_formatted = f"{payload.debt_pct * 100:.0f}%" if payload.debt_pct else "N/A"
+    
+    send_notification_email(
+        subject=f"New Valuation: {payload.email or 'Unknown User'}",
+        body=f"""
+        <h3>New Valuation Completed</h3>
+        <p><strong>Email:</strong> {payload.email or 'Not provided'}</p>
+        <p><strong>Phone:</strong> {payload.phone or 'Not provided'}</p>
+        <p><strong>Location:</strong> {payload.location or 'Not provided'}</p>
+        <p><strong>Time:</strong> {_utcnow_iso()}</p>
+        
+        <h4>Inputs:</h4>
+        <ul>
+            <li><strong>EBITDA:</strong> {ebitda_formatted}</li>
+            <li><strong>Debt %:</strong> {debt_pct_formatted}</li>
+            <li><strong>Industry:</strong> {payload.industry or 'Not specified'}</li>
+        </ul>
+        
+        <h4>Results:</h4>
+        <ul>
+            <li><strong>Enterprise Value:</strong> {ev_formatted}</li>
+            <li><strong>Expected Valuation:</strong> {expected_formatted}</li>
+            <li><strong>Expected Range:</strong> {expected_low_formatted} - {expected_high_formatted}</li>
+        </ul>
+        """
+    )
+    
+    return {"ok": True}
+
     return {"ok": True}
 
 @app.post("/compute-valuation")
