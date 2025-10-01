@@ -30,7 +30,6 @@ function pickPrimaryPhone(res: unknown): string | null {
 export async function GET() {
   try {
     const sessionToken = cookies().get('stytch_session')?.value;
-    console.log('Session token exists:', !!sessionToken);
     
     if (!sessionToken) return NextResponse.json({ email: null, phone: null });
 
@@ -38,17 +37,10 @@ export async function GET() {
       session_token: sessionToken,
     });
 
-    console.log('Session user_id:', session.user_id);
-
     const userRes = await stytchClient.users.get({ user_id: session.user_id });
     
-    console.log('Full user object:', JSON.stringify(userRes, null, 2));
-
     const primaryEmail = pickPrimaryEmail(userRes);
     const primaryPhone = pickPrimaryPhone(userRes);
-
-    console.log('Extracted email:', primaryEmail);
-    console.log('Extracted phone:', primaryPhone);
 
     return NextResponse.json({ email: primaryEmail, phone: primaryPhone });
   } catch (error) {

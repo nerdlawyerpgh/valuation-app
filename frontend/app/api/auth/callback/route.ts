@@ -18,10 +18,6 @@ export async function GET(req: Request) {
       session_duration_minutes: 60,
     });
 
-    console.log('Magic link auth response:', authResponse);
-    console.log('Session token:', authResponse.session_token);
-    console.log('Session JWT:', authResponse.session_jwt);
-
     const sessionToken = authResponse.session_token || authResponse.session_jwt;
     
     if (!sessionToken) {
@@ -37,9 +33,7 @@ export async function GET(req: Request) {
       path: '/',
       maxAge: 3600,
     });
-    
-    console.log('Set stytch_session cookie');
-    
+   
     return res;
   } catch (e) {
     console.error('Magic link auth error:', e);

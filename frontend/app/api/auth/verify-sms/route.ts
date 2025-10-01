@@ -23,8 +23,6 @@ export async function POST(req: Request) {
       session_duration_minutes: 60 
     });
 
-    console.log('OTP auth response:', authResponse);
-
     const newSessionToken = authResponse.session_token || authResponse.session_jwt;
     
     if (!newSessionToken) {
@@ -44,9 +42,7 @@ export async function POST(req: Request) {
     });
 
     res.cookies.set('stytch_phone_id', '', { path: '/', maxAge: 0 });
-    
-    console.log('Updated stytch_session cookie after phone verification');
-    
+   
     return res;
   } catch (error: any) {
     console.error('SMS verification error:', error);

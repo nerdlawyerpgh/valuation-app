@@ -9,7 +9,6 @@ export default function IntakePage() {
     fetch('/api/auth/me')
       .then(r => r.ok ? r.json() : null)
       .then(d => {
-        console.log('User data from /api/auth/me:', d);
         setUserEmail(d?.email ?? null);
         setUserPhone(d?.phone ?? null);  // ADD THIS
       })
@@ -121,8 +120,6 @@ export default function IntakePage() {
       band_label: (data.notes?.match(/band=([^;]+)/)?.[1]) ?? null,
       notes: data.notes ?? null,
     };
-
-    console.log('Sending to /log/valuation:', payloadForLog); 
 
     fetch(`${api}/log/valuation`, {
       method: 'POST',

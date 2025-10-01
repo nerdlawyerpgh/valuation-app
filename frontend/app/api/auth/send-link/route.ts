@@ -39,17 +39,11 @@ export async function POST(req: Request) {
     }
 
     try {
-      console.log('Attempting Stytch magic link for:', email);
-      console.log('LOGIN_MAGIC_URL:', LOGIN_MAGIC_URL);
-      console.log('SIGNUP_MAGIC_URL:', SIGNUP_MAGIC_URL);
-      
       const ml = await stytchClient.magicLinks.email.loginOrCreate({
         email,
         login_magic_link_url: LOGIN_MAGIC_URL,
         signup_magic_link_url: SIGNUP_MAGIC_URL,
       });
-      
-      console.log('Stytch success! Request ID:', ml.request_id);
       
       return NextResponse.json({
         ok: true,
@@ -69,22 +63,7 @@ export async function POST(req: Request) {
       const msg = err?.error_message || err?.message || 'Failed to send magic link';
       return NextResponse.json({ ok: false, error: msg }, { status: 500 });
     }
-    // Send the email magic link (login-or-create)
-//   const ml = await stytchClient.magicLinks.email.loginOrCreate({
-//      email,
-//     login_magic_link_url: LOGIN_MAGIC_URL,
-//      signup_magic_link_url: SIGNUP_MAGIC_URL,
-      // login_expiration_minutes: 60,
-      // signup_expiration_minutes: 60,
-//    });
 
-    return NextResponse.json({
-      ok: true,
-      //request_id: ml.request_id,
-      request_id: 'test-request-id',
-      login_magic_link_url: LOGIN_MAGIC_URL,
-      signup_magic_link_url: SIGNUP_MAGIC_URL,
-    });
   } catch (err: any) {
     const msg =
       err?.error_message || err?.message || 'Failed to send magic link';
