@@ -11,7 +11,7 @@ const BASE_URL =
   process.env.APP_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-const REDIRECT_PATH = '/mfa'; // where you handle the magic link token + MFA
+const REDIRECT_PATH = '/api/auth/callback'; // where you handle the magic link token + MFA
 const LOGIN_MAGIC_URL = `${BASE_URL}${REDIRECT_PATH}`;
 const SIGNUP_MAGIC_URL = `${BASE_URL}${REDIRECT_PATH}`;
 

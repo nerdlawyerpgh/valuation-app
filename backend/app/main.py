@@ -114,20 +114,23 @@ def _gs_init_once() -> None:
         _gs_client = None
         _gs_sheet = None
 
-def _gs_append_row(worksheet_name: str, row: List[Any]) -> None:
-    """Append a row to a worksheet; create the worksheet if missing. No-op if not configured."""
+def _gs_append_row(worksheet_name: str, row: List[Any], headers: Optional[List[str]] = None) -> None:
+    """Append a row to a worksheet; create the worksheet if missing with optional headers."""
     _gs_init_once()
     if _gs_sheet is None:
-        return  # no-op when credentials/sheet not configured
+        return
     try:
         try:
             ws = _gs_sheet.worksheet(worksheet_name)
         except Exception:
+            # Create new worksheet with headers
             ws = _gs_sheet.add_worksheet(title=worksheet_name, rows=1000, cols=26)
+            if headers:
+                ws.append_row(headers, value_input_option="USER_ENTERED")
+        
         ws.append_row(row, value_input_option="USER_ENTERED")
         print(f"[Google Sheets] Logged to {worksheet_name}")
     except Exception as e:
-        # Log errors so you can debug
         print(f"[Google Sheets] Failed to append to {worksheet_name}: {e}")
 
 # -----------------------------------------------------------------------------
@@ -189,12 +192,36 @@ async def debug_env():
         "GOOGLE_SERVICE_ACCOUNT_JSON": bool(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")),
     }
 
+@app.post("/log/access")
+async def log_access(req: Request, payload: AccessRequestIn):
+    ip = _client_ip(req)
+    ua = _user_agent(req)
+    row = [
+        _utcnow_iso(),
+        payload.email,
+        payload.phone or "",
+        ip,
+        ua,
+        payload.approx_city or "",
+        payload.approx_region or "",
+        payload.approx_country or "",
+        payload.lat if payload.lat is not None else "",
+        payload.lon if payload.lon is not None else "",
+        payload.referrer or "",
+    ]
+    
+    headers = [
+        "Timestamp", "Email", "Phone", "IP Address", "User Agent",
+        "City", "Region", "Country", "Latitude", "Longitude", "Referrer"
+    ]
+    
+    _gs_append_row("AccessRequests", row, headers)
+    
+    # Send email notification...
+    return {"ok": True}
+
 @app.post("/log/valuation")
 async def log_valuation(payload: ValuationRunIn):
-    """
-    Log a valuation run (inputs + outputs).
-    The frontend should POST here right after it receives the results from /compute-valuation.
-    """
     row = [
         _utcnow_iso(),
         payload.email or "",
@@ -202,7 +229,6 @@ async def log_valuation(payload: ValuationRunIn):
         payload.ebitda,
         payload.debt_pct if payload.debt_pct is not None else "",
         payload.industry or "",
-        # Outputs / tracks:
         payload.ev_tev_current if payload.ev_tev_current is not None else payload.enterprise_value or "",
         payload.ev_tev_avg or "",
         payload.ev_ind_current or "",
@@ -214,41 +240,17 @@ async def log_valuation(payload: ValuationRunIn):
         payload.band_label or "",
         payload.notes or "",
     ]
-    _gs_append_row("ValuationRuns", row)
     
-    # Send email with valuation data
-    # Format values safely before using them in the email
-    ev_formatted = f"${payload.enterprise_value:,.0f}" if payload.enterprise_value else "N/A"
-    expected_formatted = f"${payload.expected_valuation:,.0f}" if payload.expected_valuation else "N/A"
-    expected_low_formatted = f"${payload.expected_low:,.0f}" if payload.expected_low else "N/A"
-    expected_high_formatted = f"${payload.expected_high:,.0f}" if payload.expected_high else "N/A"
-    ebitda_formatted = f"${payload.ebitda:,.0f}"
-    debt_pct_formatted = f"{payload.debt_pct * 100:.0f}%" if payload.debt_pct else "N/A"
-
-    send_notification_email(
-        subject=f"New Valuation: {payload.email or 'Unknown User'}",
-        body=f"""
-        <h3>New Valuation Completed</h3>
-        <p><strong>Email:</strong> {payload.email or 'Not provided'}</p>
-        <p><strong>Phone:</strong> {payload.phone or 'Not provided'}</p>
-        <p><strong>Time:</strong> {_utcnow_iso()}</p>
-        
-        <h4>Inputs:</h4>
-        <ul>
-            <li><strong>EBITDA:</strong> {ebitda_formatted}</li>
-            <li><strong>Debt %:</strong> {debt_pct_formatted}</li>
-            <li><strong>Industry:</strong> {payload.industry or 'Not specified'}</li>
-        </ul>
-        
-        <h4>Results:</h4>
-        <ul>
-            <li><strong>Enterprise Value:</strong> {ev_formatted}</li>
-            <li><strong>Expected Valuation:</strong> {expected_formatted}</li>
-            <li><strong>Expected Range:</strong> {expected_low_formatted} - {expected_high_formatted}</li>
-        </ul>
-        """
-    )
+    headers = [
+        "Timestamp", "Email", "Phone", "EBITDA", "Debt %", "Industry",
+        "EV TEV Current", "EV TEV Avg", "EV Ind Current", "EV Ind Avg",
+        "EV PE Stack", "Expected Valuation", "Expected Low", "Expected High",
+        "Band Label", "Notes"
+    ]
     
+    _gs_append_row("ValuationRuns", row, headers)
+    
+    # Send email notification...
     return {"ok": True}
 
 @app.post("/compute-valuation")
