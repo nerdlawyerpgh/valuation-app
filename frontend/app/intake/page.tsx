@@ -267,12 +267,15 @@ export default function IntakePage() {
           {/* TEV range (unblurred) */}
           {tevLow !== null && tevHigh !== null && (
             <div className="md:col-start-2 text-gray-700">
-              <div className="mt-5 space-y-0 text-gray-700 text-lg">Total Enterprise Value:</div>
+              <div className="mt-5 space-y-0 text-gray-700 text-lg">Total Enterprise Value (TEV):</div>
               <div className="flex justify-center mt-1 text-xl font-mono">
                 ${tevLow.toLocaleString()} <span className="mx-1">-</span> ${tevHigh.toLocaleString()}
               </div>
               <p className="mt-1 text-xs text-gray-500 text-left max-w-prose">
-                This TEV represents a statistical range based on recent transactions of companies with similar debt-to-EBITDA ratios. A more accurate conclusion of TEV requires an in-depth review of your company’s financial statements (historical and forecast), normalization adjustments, capital structure (net debt and debt-like items), working-capital targets, industry dynamics, and deal-specific terms. The results are not a fairness opinion or appraisal and should not be relied upon as investment, tax, accounting, or legal advice.
+                TEV represents the total value of your company's operations. This range is based on 
+                industry-specific multiples from recent private equity transactions. To determine your 
+                expected sale price (equity value), we'll subtract net debt from TEV during our 
+                detailed financial review.
               </p>
             </div>
           )}

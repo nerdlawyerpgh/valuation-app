@@ -16,7 +16,7 @@ from sendgrid.helpers.mail import Mail
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
 from reportlab.lib import colors
 from io import BytesIO
 import base64
@@ -353,13 +353,11 @@ def generate_valuation_pdf(payload: ValuationRunIn) -> BytesIO:
     
     results_data = [
         ['<b>Metric</b>', '<b>Value</b>'],
-        ['<b>Enterprise Value</b>', 
-         f"<b>${payload.enterprise_value:,.0f}</b>" if payload.enterprise_value else "N/A"],
-        ['Expected Valuation', 
-         f"${payload.expected_valuation:,.0f}" if payload.expected_valuation else "N/A"],
-        ['Valuation Range', 
-         f"${payload.expected_low:,.0f} - ${payload.expected_high:,.0f}" 
-         if payload.expected_low and payload.expected_high else "N/A"],
+        ['<b>Total Enterprise Value (TEV)</b>', 
+        f"<b>${payload.enterprise_value:,.0f}</b>" if payload.enterprise_value else "N/A"],
+        ['TEV Range', 
+        f"${payload.expected_low:,.0f} - ${payload.expected_high:,.0f}" 
+        if payload.expected_low and payload.expected_high else "N/A"],
     ]
     
     results_table = Table(results_data, colWidths=[2.5*inch, 4*inch])
@@ -630,11 +628,11 @@ async def log_valuation(payload: ValuationRunIn):
         
         <h4>Results:</h4>
         <ul>
-            <li><strong>Enterprise Value:</strong> {ev_formatted}</li>
-            <li><strong>Expected Valuation:</strong> {expected_formatted}</li>
-            <li><strong>Expected Range:</strong> {expected_low_formatted} - {expected_high_formatted}</li>
+            <li><strong>Total Enterprise Value (TEV):</strong> {ev_formatted}</li>
+            <li><strong>TEV Range:</strong> {expected_low_formatted} - {expected_high_formatted}</li>
         </ul>
-        """
+
+        """,
         attachment_data=pdf_buffer,
         attachment_name=f"valuation_report_{payload.email or 'user'}_{_utcnow_iso().split('T')[0]}.pdf"
     )

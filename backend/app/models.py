@@ -27,11 +27,11 @@ class ChartBar(BaseModel):
 class ValuationOutput(BaseModel):
     enterprise_value: float
     expected_valuation: float
-    # NEW: show a range (min..max) based on the set of multiples we compute
     expected_low: Optional[float] = None
     expected_high: Optional[float] = None
-
+    tev_low: Optional[float] = None  # ADD
+    tev_high: Optional[float] = None  # ADD
     unlocked: bool = False
-    # NEW: a simple dataset the frontend can chart
     bars: List[ChartBar] = []
+    notes: Optional[str] = None
     notes: Optional[str] = None
