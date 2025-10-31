@@ -6,3 +6,4 @@ pydantic[email]
 reportlab
 matplotlib
 sendgrid
+pandas
