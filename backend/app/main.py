@@ -40,7 +40,7 @@ print(f"[env] loaded .env from {DOTENV_PATH.exists() and DOTENV_PATH or 'NOT FOU
 # -----------------------------------------------------------------------------
 # CORS (adjust via env)
 # -----------------------------------------------------------------------------
-ALLOW_ORIGINS = os.getenv("CORS_ALLOW_ORIGINS", "http://localhost:3000")
+ALLOW_ORIGINS = os.getenv("CORS_ALLOW_ORIGINS", "https://valuation.nerdlawyer.ai/", "http://localhost:3000")
 ALLOW_ORIGINS_LIST = [o.strip() for o in ALLOW_ORIGINS.split(",") if o.strip()]
 
 app = FastAPI()
