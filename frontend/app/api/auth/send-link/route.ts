@@ -5,11 +5,11 @@ import { stytchClient } from '@/lib/stytch'; // export a ready instance from lib
 const isEmail = (s: unknown): s is string =>
   typeof s === 'string' && /\S+@\S+\.\S+/.test(s);
 
-const BACKEND = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
+const BACKEND = process.env.NEXT_PUBLIC_API_BASE || 'https://valuation.nerdlawyer.ai/compute-valuation';
 const BASE_URL =
   process.env.NEXT_PUBLIC_APP_URL ||
   process.env.APP_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://valuation.nerdlawyer.ai');
 
 const REDIRECT_PATH = '/api/auth/callback'; // where you handle the magic link token + MFA
 const LOGIN_MAGIC_URL = `${BASE_URL}${REDIRECT_PATH}`;

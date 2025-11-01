@@ -68,7 +68,7 @@ export default function MfaPage() {
       body: JSON.stringify({ email, phone }),
     });
     // app/mfa/page.tsx (after successful OTP verification)
-    const api = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
+    const api = process.env.NEXT_PUBLIC_API_BASE || 'https://valuation.nerdlawyer.ai/compute-valuation';
     fetch(`${api}/log/access`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

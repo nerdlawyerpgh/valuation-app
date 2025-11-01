@@ -61,7 +61,7 @@ export default function IntakePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const api = process.env.REACT_APP_API_BASE || 'http://localhost:8000';
+    const api = process.env.REACT_APP_API_BASE || 'https://valuation.nerdlawyer.ai/compute-valuation';
     const res = await fetch(`${api}/compute-valuation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
