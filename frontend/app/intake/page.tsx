@@ -59,29 +59,41 @@ export default function IntakePage() {
   const expectedMin = expectedLow ?? (expected !== null ? Math.round(expected * 0.8) : null);
   const expectedMax = expectedHigh ?? (expected !== null ? Math.round(expected * 1.2) : null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const api = process.env.REACT_APP_API_URL || 'https://valuation.nerdlawyer.ai';
-    const res = await fetch(`${api}/compute-valuation`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ebitda: parseFloat(ebitda),
-        debt_pct: debtPct / 100,
-        industry,
-      }),
-    });
-    if (!res.ok) {
-      alert('Failed to compute valuation');
-      return;
-    }
-    const data = await res.json();
+	async function handleSubmit(e: React.FormEvent) {
+		e.preventDefault();
 
-    setEv(data.enterprise_value ?? null);
-    setExpected(data.expected_valuation ?? null);
-    setExpectedLow(data.expected_low ?? null);
-    setExpectedHigh(data.expected_high ?? null);
-    setUnlocked(Boolean(data.unlocked));
+		// ✅ Build the correct backend URL safely
+		const api =
+			process.env.REACT_APP_API_URL ||
+			process.env.NEXT_PUBLIC_API_BASE ||
+			(import.meta as any)?.env?.VITE_API_BASE ||
+			'https://api.nerdlawyer.ai'; // ← your backend on Render
+
+		const url = new URL('/compute-valuation', api).toString();
+
+		const res = await fetch(url, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				ebitda: parseFloat(ebitda),
+				debt_pct: debtPct / 100,
+				industry,
+			}),
+		});
+
+		if (!res.ok) {
+			const txt = await res.text().catch(() => '');
+			console.error('Failed to compute valuation', res.status, txt);
+			alert('Failed to compute valuation');
+			return;
+		}
+
+		const data = await res.json();
+		setEv(data.enterprise_value ?? null);
+		setExpected(data.expected_valuation ?? null);
+		setExpectedLow(data.expected_low ?? null);
+		setExpectedHigh(data.expected_high ?? null);
+		setUnlocked(Boolean(data.unlocked));
 
     // Prefer explicit TEV CI if provided; else use expected_low/high
     const lo = (data.tev_low ?? data.expected_low) ?? null;
