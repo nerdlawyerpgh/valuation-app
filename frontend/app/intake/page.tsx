@@ -142,8 +142,6 @@ export default function IntakePage() {
 
   return (
     <div className="card">
-      <h2 className="text-xl font-semibold mb-4 text-gray-900">Hi there!</h2>
-
       <div className="space-y-3 text-sm md:text-base text-gray-700">
         <p><strong>Total Enterprise Value (TEV)</strong> reflects the value of a company’s core operations—its equity plus net debt.</p>
         <p className="font-mono">TEV = Market Capitalization + Total Debt − Cash &amp; Cash Equivalents</p>
