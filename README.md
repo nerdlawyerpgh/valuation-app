@@ -1,6 +1,7 @@
 # Valuation App Starter (Next.js + FastAPI + Stytch-ready)
 
 This starter migrates your Streamlit prototype into a production-style architecture with:
+
 - Next.js (App Router) frontend
 - FastAPI backend for all valuation logic
 - Space for Stytch passwordless + MFA (email magic link as primary, SMS/TOTP as second factor)
@@ -9,11 +10,13 @@ This starter migrates your Streamlit prototype into a production-style architect
 ## What you need to do
 
 1. **Move your valuation logic** from Streamlit into `backend/app/valuations.py::compute_valuation`.
+
    - Convert Streamlit-specific code into **pure functions**.
    - If your app uses CSVs (e.g., `multiples_tev.csv`, `multiples_industry.csv`), load them in that module and select multiples based on inputs like `industry` and `tev_band`.
    - Keep any charts client-side (Next.js) using a chart lib.
 
 2. **Wire up Stytch** for auth & MFA:
+
    - Add server routes in Next.js using `@stytch/nextjs` or vanilla server SDK to send a **magic link** to the email captured on `/request-access`.
    - On callback, set your session cookie and **redirect to `/app/intake`**.
    - Implement **MFA step-up**: after magic link, send SMS/TOTP and set an `mfa_token` cookie (this starter uses a signed cookie via `MFA_SIGNING_SECRET`).
@@ -25,6 +28,7 @@ This starter migrates your Streamlit prototype into a production-style architect
 ## Local development
 
 ### Backend (FastAPI)
+
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate
@@ -32,16 +36,19 @@ pip install -r requirements.txt
 cp .env.example .env
 ./run.sh
 ```
-Runs on `http://localhost:8000`.
+
+Runs on `"https://valuation.nerdlawyer.ai/compute-valuation"`.
 
 ### Frontend (Next.js)
+
 ```bash
 cd frontend
 npm install
 cp .env.local.example .env.local
 npm run dev
 ```
-Runs on `http://localhost:3000`. Set `NEXT_PUBLIC_API_BASE` to your FastAPI URL.
+
+Runs on `"https://valuation.nerdlawyer.ai/compute-valuation"`. Set `NEXT_PUBLIC_API_BASE` to your FastAPI URL.
 
 ## Route overview
 
