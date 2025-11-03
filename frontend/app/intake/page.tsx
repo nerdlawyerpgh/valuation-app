@@ -133,7 +133,8 @@ export default function IntakePage() {
       notes: data.notes ?? null,
     };
 
-    fetch(`${api}/log/valuation`, {
+    const logUrl = new URL('/log/valuation', api).toString();
+    fetch(logUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payloadForLog),
