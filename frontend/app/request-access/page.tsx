@@ -35,10 +35,10 @@ export default function RequestAccessPage() {
         <form onSubmit={handleSubmit} className="space-y-3"><h2 className="text-xl font-semibold mb-4 text-gray-900">WELCOME!</h2>
         <div className="mt-1 text-base text-gray-600 space-y-3">
           <p>
-            At Jordon Voytek Capital Partners, we help business owners achieve their goals: sell on your terms, free up time to spend with family and friends, or expand your empire through acquisition. 
+            <strong className="text-red-600">Nerd Lawyer</strong> helps business owners turn ambition into action. Whether you are raising capital, planning an exit, or taking the company public.  
           </p>
           <p>
-            It all starts with a clear valuation.
+            Success starts with knowing what your business is worth.
           </p>
           <p>
             This tool estimates your company’s current value—its <strong>Enterprise Value</strong>—using
