@@ -10,8 +10,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 
+from typing import Optional
+from io import BytesIO
+import base64
 from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+from sendgrid.helpers.mail import Mail, Email, Personalization
 
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -54,28 +57,66 @@ app.add_middleware(
 # -----------------------------------------------------------------------------
 # SendGrid helpers 
 # -----------------------------------------------------------------------------
-def send_notification_email(subject: str, body: str, attachment_data: Optional[BytesIO] = None, attachment_name: str = "valuation_report.pdf"):
-    """Send notification email with optional PDF attachment"""
+def parse_recipients(raw: str | None) -> list[str]:
+    if not raw:
+        return []
+    parts = re.split(r'[,\s;]+', raw.strip())
+    # Deduplicate while preserving order
+    seen, out = set(), []
+    for p in parts:
+        if p and p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
+
+def send_notification_email(
+    subject: str,
+    body: str,
+    attachment_data: Optional[BytesIO] = None,
+    attachment_name: str = "valuation_report.pdf",
+    use_bcc: bool = True,  # set to False if you prefer Option B below
+):
+    """Send notification email with optional PDF attachment to one or many recipients."""
     api_key = os.getenv("SENDGRID_API_KEY")
-    to_email = os.getenv("NOTIFICATION_EMAIL")
-    
-    if not api_key or not to_email:
+    raw_recipients = os.getenv("NOTIFICATION_EMAIL")  # supports multiple
+    from_addr = os.getenv("SENDGRID_FROM", "curt@nerdlawyer.ai")  # must be verified
+    placeholder_to = os.getenv("SENDGRID_PLACEHOLDER_TO", "no-reply@nerdlawyer.ai")
+
+    recipients = parse_recipients(raw_recipients)
+
+    if not api_key or not recipients:
+        print("[Email] Missing SENDGRID_API_KEY or NOTIFICATION_EMAIL")
         return
-    
+
     try:
-        message = Mail(
-            from_email='curt@nerdlawyer.ai',
-            to_emails='no-reply@jovocp.com',
-            bcc_emails=to_email,
-            subject=subject,
-            html_content=body
-        )
-        
+        if use_bcc:
+            # Build message with a required "to" and everyone else in BCC
+            message = Mail(
+                from_email=from_addr,
+                to_emails=placeholder_to,  # required even when using BCC
+                subject=subject,
+                html_content=body
+            )
+            # Add BCCs via Personalization so multiple emails are handled correctly
+            p = Personalization()
+            p.add_to(Email(placeholder_to))
+            for r in recipients:
+                p.add_bcc(Email(r))
+            message.personalizations = [p]
+        else:
+            # Option B (show recipients to each other): pass list to "to_emails"
+            message = Mail(
+                from_email=from_addr,
+                to_emails=recipients,   # list of emails
+                subject=subject,
+                html_content=body
+            )
+
+        # Optional PDF attachment
         if attachment_data:
             from sendgrid.helpers.mail import Attachment, FileContent, FileName, FileType, Disposition
             attachment_data.seek(0)
             encoded = base64.b64encode(attachment_data.read()).decode()
-            
             attached_file = Attachment(
                 FileContent(encoded),
                 FileName(attachment_name),
@@ -83,11 +124,21 @@ def send_notification_email(subject: str, body: str, attachment_data: Optional[B
                 Disposition('attachment')
             )
             message.attachment = attached_file
-        
+
         sg = SendGridAPIClient(api_key)
-        sg.send(message)
-        print(f"[Email] Sent successfully{'with PDF attachment' if attachment_data else ''}")
+        resp = sg.send(message)
+        print(f"[Email] Sent (status {getattr(resp, 'status_code', '?')}) "
+              f"{'with PDF attachment' if attachment_data else ''}")
     except Exception as e:
+        # Print SendGrid error details when available
+        status = getattr(getattr(e, 'response', None), 'status_code', None)
+        body = None
+        if getattr(e, 'response', None) and getattr(e.response, 'body', None):
+            try:
+                body = e.response.body.decode() if hasattr(e.response.body, 'decode') else e.response.body
+            except Exception:
+                body = str(e.response.body)
+        print(f"[Email] Failed to send. Status={status} Details={body or e}")
         print(f"[Email] Failed to send: {e}")
 
 # -----------------------------------------------------------------------------
