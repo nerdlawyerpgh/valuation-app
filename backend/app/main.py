@@ -66,7 +66,7 @@ def send_notification_email(subject: str, body: str, attachment_data: Optional[B
         message = Mail(
             from_email='curt@nerdlawyer.ai',
             to_emails='no-reply@jovocp.com',
-            bcc_emails= to_email
+            bcc_emails=to_email,
             subject=subject,
             html_content=body
         )
